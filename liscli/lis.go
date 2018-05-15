@@ -74,7 +74,7 @@ func (s *SocListener) Run() error {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 	for {
-		select {
+		select { 
 		case <-done:
 			return nil
 		// case t := <-ticker.C:

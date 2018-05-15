@@ -49,9 +49,13 @@ func NewSocSender(host, path, tok string) *SocSender {
 }
 
 type MsgBody struct {
-	Type   string `json:"type,omitempty"`
-	Msg    string `json:"msg,omitempty"`
-	UserID int32  `json:"user_id,omitempty"`
+	Type      string  `json:"type,omitempty"`
+	Msg       string  `json:"msg,omitempty"`
+	UserID    int32   `json:"user_id,omitempty"`
+	DriverID  int32   `json:"driver_id,omitempty"`
+	CurLat    float32 `json:"current_latitude,omitempty"`
+	CurLong   float32 `json:"current_longitude,omitempty"`
+	PromptAct string  `json:"prompt_action,omitempty"`
 }
 
 // Run creates websocket url, dials and listens to websock
@@ -85,6 +89,14 @@ func (s *SocSender) Run() error {
 
 	mes := read(os.Stdin) //Reading from Stdin
 
+	fixedObj := MsgBody{
+		UserID:    12022,
+		DriverID:  12,
+		CurLat:    23.89778678,
+		CurLong:   90.87764554,
+		Type:      "relay",
+		PromptAct: "update_ride",
+	}
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 	for {
@@ -103,7 +115,7 @@ func (s *SocSender) Run() error {
 			}
 			fmt.Printf("w: %v\n", w)
 			fmt.Println("body tp:", body.Type, " userid:", body.UserID, " msg:", body.Msg)
-			if err := c.WriteJSON(body); err != nil {
+			if err := c.WriteJSON(fixedObj); err != nil {
 				return fmt.Errorf("write: %v", err)
 			}
 

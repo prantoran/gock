@@ -14,7 +14,7 @@ const (
 
 // var addr = flag.String("addr", "localhost:8080", "http service address")
 
-var addr = "192.168.0.167:4200"
+var addr = "192.168.0.167:4201"
 var drpCnt = 0
 var crtCnt = 0
 var incorrect = 0

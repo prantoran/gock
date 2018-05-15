@@ -23,6 +23,6 @@ func main() {
 		log.Println("sender run error:", err)
 	}
 
+	forever := make(chan bool)
+	<-forever
 }
-
-

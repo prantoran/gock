@@ -5,9 +5,6 @@ import (
 	"log"
 	"math/rand"
 	"net/url"
-	"os"
-	"os/signal"
-	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -53,60 +50,22 @@ func (s *SocSender) Run() error {
 	}
 	defer c.Close()
 
-	done := make(chan struct{})
+	r := rand.New(rand.NewSource(99))
 
-	go func() {
-		defer close(done)
-		for {
-			_, message, err := c.ReadMessage()
-			if err != nil {
-				log.Println("read:", err)
-				return
-			}
-			log.Printf("recv: %s", message)
-		}
-	}()
-
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-
-	go func(n, m int) {
-		r := rand.New(rand.NewSource(99))
-
-		for i := 1; i <= m; i++ {
+	for i := 1; i <= s.Turns; i++ {
+		go func(n, msgID int) {
 			u := r.Intn(n) + 1
 			body := MsgBody{}
 			body.Type = "relay"
 			body.UserID = int32(u)
-			body.Msg = fmt.Sprintf("msg%d", i)
+			body.Msg = fmt.Sprintf("msg%d", msgID)
 
 			// fmt.Println("body tp:", body.Type, " userid:", body.UserID, " msg:", body.Msg)
+			fmt.Println("Sent to uid:", u, " msg:", msgID)
 			if err := c.WriteJSON(body); err != nil {
 				log.Printf("write: %v", err)
 			}
-		}
-	}(s.MaxID, s.Turns)
-
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt)
-	for {
-		select {
-		case <-done:
-			return nil
-		case <-interrupt:
-			log.Println("interrupt")
-
-			// Cleanly close the connection by sending a close message and then
-			// waiting (with timeout) for the server to close the connection.
-			err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-			if err != nil {
-				return fmt.Errorf("write close: %v", err)
-			}
-			select {
-			case <-done:
-			case <-time.After(time.Second):
-			}
-			return nil
-		}
+		}(s.MaxID, i)
 	}
+	return nil
 }

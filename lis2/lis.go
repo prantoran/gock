@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"strconv"
 
 	"github.com/gorilla/websocket"
 )
@@ -26,6 +27,11 @@ type MsgBody struct {
 	Type  string `json:"type,omitempty"`
 	Msg   string `json:"msg,omitempty"`
 	Token string `json:"token,omitempty"`
+}
+type PubMsg struct {
+	Type   string `json:"type,omitempty"`
+	Msg    string `json:"msg,omitempty"`
+	UserID int32  `json:"user_id,omitempty"`
 }
 
 // Run creates websocket url, dials and listens to websock
@@ -57,13 +63,21 @@ func (s *SocListener) Run() error {
 		crtCnt++
 		fmt.Println("tot alive connection", crtCnt, "tot droped connection", drpCnt)
 		for {
-			_, message, err := c.ReadMessage()
+			msg := PubMsg{}
+			err := websocket.ReadJSON(c, msg)
 
 			if err != nil {
 				log.Println("listener:", s.Token, " read:", err)
 				return
 			}
-			log.Printf("recv: %s", message)
+			
+			uid := strconv.Itoa(int(msg.UserID))
+
+			if uid != s.Token {
+				incorrect++
+				log.Println("Incorrect cnt:", incorrect, " target user:", uid, " received user:", s.Token)
+			}
+			log.Printf("recv: %v", msg)
 		}
 	}()
 

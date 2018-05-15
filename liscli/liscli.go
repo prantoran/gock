@@ -20,6 +20,7 @@ type SocListener struct {
 	Token string
 	Path  string
 	Host  string
+	Conn  *websocket.Conn
 }
 
 // NewSocListener creates new instances
@@ -38,6 +39,7 @@ type MsgBody struct {
 	Token string `json:"token,omitempty"`
 }
 
+// LisErr stores error generated inside Listen's goroutine
 type LisErr struct {
 	v string
 }
@@ -46,9 +48,8 @@ func (e *LisErr) Error() string {
 	return e.v
 }
 
-// Run creates websocket url, dials and listens to websock
-func (s *SocListener) Run() error {
-
+// Connect dials a websocket url and stores the connection
+func (s *SocListener) Connect() error {
 	u := url.URL{Scheme: "ws", Host: s.Host, Path: s.Path, RawQuery: "token=" + s.Token}
 	log.Printf("connecting to %s", u.String())
 
@@ -56,22 +57,16 @@ func (s *SocListener) Run() error {
 	if err != nil {
 		return fmt.Errorf("dial: %v", err)
 	}
-	defer c.Close()
+	s.Conn = c
+	return nil
+}
 
-	body := MsgBody{
-		Token: s.Token,
-		Type:  "register",
-	}
-
-	// registering token, useless
-	if err := c.WriteJSON(body); err != nil {
-		return fmt.Errorf("listener reg: %v", err)
-	}
-
+// Listen listens to websocket
+func (s *SocListener) Listen() error {
 	var errL LisErr
 	go func() {
 		for {
-			_, message, err := c.ReadMessage()
+			_, message, err := s.Conn.ReadMessage()
 			if err != nil {
 				errL = LisErr{
 					v: err.Error(),
@@ -82,6 +77,30 @@ func (s *SocListener) Run() error {
 		}
 	}()
 	return &errL
+}
+
+// Run creates websocket url, dials and listens to websock
+func (s *SocListener) Run() error {
+	if err := s.Connect(); err != nil {
+		return fmt.Errorf("Connect err: %v", err)
+	}
+	defer s.Conn.Close()
+
+	body := MsgBody{
+		Token: s.Token,
+		Type:  "register",
+	}
+
+	// registering token, useless
+	if err := s.Conn.WriteJSON(body); err != nil {
+		return fmt.Errorf("listener reg: %v", err)
+	}
+
+	if err := s.Listen(); err != nil {
+		return fmt.Errorf("Listen err: %v", err)
+	}
+
+	return nil
 }
 
 func main() {
@@ -98,7 +117,3 @@ func main() {
 	forever := make(chan bool)
 	<-forever
 }
-
-/*
-00wO3ztoWQ16AfsGaCS5ddaUz6pkY2FpeHavP2RB
-*/

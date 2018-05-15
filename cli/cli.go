@@ -61,17 +61,17 @@ func main() {
 
 	done := make(chan struct{})
 
-	// go func() {
-	// 	defer close(done)
-	// 	for {
-	// 		_, message, err := c.ReadMessage()
-	// 		if err != nil {
-	// 			log.Println("read:", err)
-	// 			return
-	// 		}
-	// 		log.Printf("recv: %s", message)
-	// 	}
-	// }()
+	go func() {
+		defer close(done)
+		for {
+			_, message, err := c.ReadMessage()
+			if err != nil {
+				log.Println("read:", err)
+				return
+			}
+			log.Printf("recv: %s", message)
+		}
+	}()
 
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()

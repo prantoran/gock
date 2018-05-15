@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"magic.pathao.com/rakin/gosocket/sock"
+	"github.com/prantoran/gock/sock"
 )
 
 var addr = flag.String("addr", ":8080", "http service address")

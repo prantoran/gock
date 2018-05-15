@@ -19,7 +19,7 @@ type Hub struct {
 	unregister chan *Client
 
 	// UserIDs stores the list of userIDs to allow communications
-	userIDs map[string]bool
+	tokens map[string]bool
 
 	userCache map[string]*Client
 }
@@ -31,7 +31,7 @@ func NewHub() *Hub {
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
-		userIDs:    make(map[string]bool),
+		tokens:     make(map[string]bool),
 		userCache:  make(map[string]*Client),
 	}
 }
@@ -40,11 +40,11 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case body := <-h.send:
-			client := h.userCache[body.UserID]
-			client.send <- []byte(body.Message)
+			client := h.userCache[body.Token]
+			client.send <- []byte(body.Msg)
 		case client := <-h.register:
 			h.clients[client] = true
-			h.userCache[client.UserID] = client
+			h.userCache[client.token] = client
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)

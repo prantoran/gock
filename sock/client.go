@@ -11,8 +11,9 @@ import (
 )
 
 const (
+	Publisher = "pub"
 	Broadcast = "broadcast"
-	Send      = "send"
+	Send      = "relay"
 	Register  = "reg"
 	Admin     = "admin"
 
@@ -31,9 +32,9 @@ const (
 )
 
 type MsgBody struct {
-	Type    string `json:"type"`
-	UserID  string `json:"user_id"`
-	Message string `json:"message,omitempty"`
+	Type  string `json:"type,omitempty"`
+	Msg   string `json:"msg,omitempty"`
+	Token string `json:"token,omitempty"`
 }
 
 var (
@@ -48,7 +49,7 @@ var upgrader = websocket.Upgrader{
 
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
-	UserID string `json:"user_id"`
+	token string `json:"token"`
 
 	hub *Hub
 
@@ -73,10 +74,14 @@ func (c *Client) readPump() {
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
+
+		if c.token == Publisher {
+			
+		}
 		body := &MsgBody{}
 		err := c.conn.ReadJSON(body)
 		// _, msg, err := c.conn.ReadMessage()
-		fmt.Println("client userid:", c.UserID, " body type:", body.Type, " msg:", body.Message, " userid:", body.UserID)
+		fmt.Println("client token:", c.token, " body type:", body.Type, " msg:", body.Msg)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
@@ -86,13 +91,15 @@ func (c *Client) readPump() {
 
 		switch tp := body.Type; tp {
 		case Send:
-			msg := bytes.TrimSpace(bytes.Replace([]byte(body.Message), newline, space, -1))
-			c.hub.broadcast <- msg
+			msg := bytes.TrimSpace(bytes.Replace([]byte(body.Msg), newline, space, -1))
+			tokClient := c.hub.userCache[body.Token]
+			tokClient.send <- msg
+			// c.hub.broadcast <- msg
 		case Register:
 			// registering a userid, so that future clients with this userid
 			// can be registered to the hub
 			fmt.Println("en reg of readpump")
-			c.hub.userIDs[body.UserID] = true
+			c.hub.tokens[body.Token] = true
 		case Broadcast:
 
 		}
@@ -152,22 +159,15 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	fmt.Println("ServeWs")
 
 	params := r.URL.Query()
-	userID := params[UserID][0]
-	fmt.Println("userID:", userID)
-
-	if userID != Admin {
-		if hub.userIDs[userID] {
-			w.Write([]byte("UserID:" + userID + " not registered"))
-			return
-		}
-	}
+	tok := params["token"][0]
+	fmt.Println("token:", tok)
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
+	client := &Client{token: tok, hub: hub, conn: conn, send: make(chan []byte, 256)}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in

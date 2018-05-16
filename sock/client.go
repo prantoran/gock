@@ -49,7 +49,7 @@ var upgrader = websocket.Upgrader{
 
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
-	token string `json:"token"`
+	Token string `json:"token"`
 
 	hub *Hub
 
@@ -75,13 +75,13 @@ func (c *Client) readPump() {
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
 
-		if c.token == Publisher {
-			
+		if c.Token == Publisher {
+
 		}
 		body := &MsgBody{}
 		err := c.conn.ReadJSON(body)
 		// _, msg, err := c.conn.ReadMessage()
-		fmt.Println("client token:", c.token, " body type:", body.Type, " msg:", body.Msg)
+		fmt.Println("client token:", c.Token, " body type:", body.Type, " msg:", body.Msg)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
@@ -167,7 +167,7 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	client := &Client{token: tok, hub: hub, conn: conn, send: make(chan []byte, 256)}
+	client := &Client{Token: tok, hub: hub, conn: conn, send: make(chan []byte, 256)}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in

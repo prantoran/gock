@@ -44,7 +44,7 @@ func (h *Hub) Run() {
 			client.send <- []byte(body.Msg)
 		case client := <-h.register:
 			h.clients[client] = true
-			h.userCache[client.token] = client
+			h.userCache[client.Token] = client
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)

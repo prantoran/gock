@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"log"
-	"strconv"
 
 	"github.com/prantoran/gock/lis"
 	pub "github.com/prantoran/gock/pub"
@@ -18,14 +17,8 @@ func main() {
 	flag.Parse()
 	log.SetFlags(0)
 
-	maxID, err := strconv.Atoi(*flag.String("maxid", "array", "type of publishing to use"))
-	if err != nil {
-		log.Println("maxId not integer")
-	}
-	turns, err := strconv.Atoi(*flag.String("turns", "pub", "publisher name"))
-	if err != nil {
-		log.Println("turns not integer")
-	}
+	maxID := *flag.Int("maxid", 2, "maxid indicates max number of clients")
+	turns := *flag.Int("turns", 1, "the number of times to send websocket request")
 
 	if err := lis.CreateListeners(addr, 1, maxID); err != nil {
 		log.Println("Could not create listeners, err:", err)
